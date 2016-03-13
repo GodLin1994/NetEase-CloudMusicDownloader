@@ -113,7 +113,7 @@ public class CloudMusicDownloader {
         }
 
         ExecutorService pool = Executors.newFixedThreadPool(limit);
-        System.out.println("共：" + songs.length + "首歌曲");
+        System.out.println("共：" + songs.length + "首歌曲\n正在下载...");
         for ( Song song : songs ) {
             String songURL = song.getMp3Url() + "/" + encryptedID("" + song.getDfsId()) + "/" +
                     song.getDfsId() + "." + song.getExtension();
@@ -121,7 +121,6 @@ public class CloudMusicDownloader {
             File file = new File(songName);
 
             pool.execute( new Thread( () -> {
-                System.out.println("正在下载：" + String.format(namingRule, song.getName(), song.getArtist()));
                 downloadFile(songURL, file);
                 if ( isIncludeLyric ) {
                     String jsonContent = readContent("http://music.163.com/api/song/media?id=" + song.getId());
@@ -141,6 +140,7 @@ public class CloudMusicDownloader {
                         //no lyric found
                     }
                 }
+                System.out.println("下载完成：" + String.format(namingRule, song.getName(), song.getArtist()));
             }) );
         }
         pool.shutdown();
