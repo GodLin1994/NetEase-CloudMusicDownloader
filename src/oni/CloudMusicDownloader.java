@@ -120,12 +120,8 @@ public class CloudMusicDownloader {
             String mp3Url = curSong.getString("mp3Url");
             mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length()));
             int curQuality = quality;
-            while ( curSong.get(songQuality[curQuality]).equals(null) && (curQuality < songQuality.length) ) {
+            while ( curSong.get(songQuality[curQuality]).equals(null) ) {
                 ++curQuality;
-            }
-            if ( curQuality >= songQuality.length ) {
-                System.out.println("下载失败：" + String.format(namingRule, name, artist));
-                continue;
             }
             JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
             long dfsId = music.getLong("dfsId");
