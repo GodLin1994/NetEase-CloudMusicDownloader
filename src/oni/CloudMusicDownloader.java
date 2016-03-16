@@ -72,24 +72,36 @@ public class CloudMusicDownloader {
         String json = readContent( "http://music.163.com/api/album/" + albumID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject album = jsonObject.getJSONObject("album");
+        File dir = new File( album.getString("name") );
+        if ( ( !dir.exists() && !dir.mkdir() ) || ( dir.exists() && dir.isFile() ) )
+        {
+            System.out.println( "不能创建目录：" + dir.getAbsolutePath() );
+            return;
+        }
         JSONArray songsJson = album.getJSONArray("songs");
-        parseResult(songsJson, quality, isIncludeLyric, namingRule, limit);
+        parseResult(songsJson, quality, dir, isIncludeLyric, namingRule, limit);
     }
     private void parsePlaylist( String listID, String quality, boolean isIncludeLyric, String namingRule, int limit ) {
         String json = readContent( "http://music.163.com/api/playlist/detail?id=" + listID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject result = jsonObject.getJSONObject("result");
+        File dir = new File( result.getString("name") );
+        if ( ( !dir.exists() && !dir.mkdir() ) || ( dir.exists() && dir.isFile() ) )
+        {
+            System.out.println( "不能创建目录：" + dir.getAbsolutePath() );
+            return;
+        }
         JSONArray tracksJson = result.getJSONArray("tracks");
-        parseResult(tracksJson, quality, isIncludeLyric, namingRule, limit);
+        parseResult(tracksJson, quality, dir, isIncludeLyric, namingRule, limit);
     }
     private void parseSong( String SongID, String quality, boolean isIncludeLyric, String namingRule ) {
         String json = readContent( "http://music.163.com/api/song/detail?ids=[" + SongID + "]" );
         JSONObject jsonObject = new JSONObject(json);
         JSONArray songsJson = jsonObject.getJSONArray("songs");
-        parseResult(songsJson, quality, isIncludeLyric, namingRule, 1);
+        parseResult(songsJson, quality, null, isIncludeLyric, namingRule, 1);
     }
 
-    private void parseResult(JSONArray jsonResult, String quality, boolean isIncludeLyric, String namingRule,
+    private void parseResult(JSONArray jsonResult, String quality, File dir, boolean isIncludeLyric, String namingRule,
                              int limit ) {
 
         Song[] songs = new Song[jsonResult.length()];
@@ -118,27 +130,18 @@ public class CloudMusicDownloader {
             String songURL = song.getMp3Url() + "/" + encryptedID("" + song.getDfsId()) + "/" +
                     song.getDfsId() + "." + song.getExtension();
             String songName = String.format(namingRule, song.getName(), song.getArtist()) + "." + song.getExtension();
-            File file = new File(songName);
+            File file;
+            if ( dir != null ) {
+                file = new File( dir.getAbsolutePath() + File.separator + songName);
+            }
+            else {
+                file = new File(songName);
+            }
 
             pool.execute( new Thread( () -> {
                 downloadFile(songURL, file);
                 if ( isIncludeLyric ) {
-                    String jsonContent = readContent("http://music.163.com/api/song/media?id=" + song.getId());
-                    JSONObject lyricJson = new JSONObject(jsonContent);
-                    try {
-                        String lyric = lyricJson.getString("lyric");
-                        String lyricName = String.format(namingRule, song.getName(), song.getArtist()) + ".lrc";
-                        try {
-                            BufferedWriter bufferedWriter = new BufferedWriter( new FileWriter(lyricName) );
-                            bufferedWriter.write(lyric);
-                            bufferedWriter.flush();
-                            bufferedWriter.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    } catch ( JSONException e ){
-                        //no lyric found
-                    }
+                    downloadLyric(song, dir, namingRule);
                 }
                 System.out.println("下载完成：" + String.format(namingRule, song.getName(), song.getArtist()));
             }) );
@@ -163,6 +166,36 @@ public class CloudMusicDownloader {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
+        return result;
+    }
+
+    private boolean downloadLyric( Song song, File dir, String namingRule ) {
+        boolean result = true;
+        String jsonContent = readContent("http://music.163.com/api/song/media?id=" + song.getId());
+        JSONObject lyricJson = new JSONObject(jsonContent);
+        try {
+            String lyric = lyricJson.getString("lyric");
+            String lyricName;
+            if ( dir == null ) {
+                lyricName = String.format(namingRule, song.getName(), song.getArtist()) + ".lrc";
+            }
+            else {
+                lyricName = dir.getAbsolutePath() + File.separator +
+                        String.format(namingRule, song.getName(), song.getArtist()) + ".lrc";
+            }
+            try {
+                BufferedWriter bufferedWriter = new BufferedWriter( new FileWriter(lyricName) );
+                bufferedWriter.write(lyric);
+                bufferedWriter.flush();
+                bufferedWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch ( JSONException e ){
+            //no lyric found
+            result = false;
+        }
+
         return result;
     }
 
