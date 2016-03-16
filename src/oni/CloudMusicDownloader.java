@@ -1,7 +1,6 @@
 package oni;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -33,10 +32,12 @@ public class CloudMusicDownloader {
      *
      */
 
+    private String[] songQuality = {"hMusic", "mMusic", "lMusic", "bMusic"};
+
     public class Quality {
-        public final static String HIGH_QUALITY = "hMusic";
-        public final static String MEDIUM_QUALITY = "mMusic";
-        public final static String LOW_QUALITY = "lMusic";
+        public final static int HIGH_QUALITY = 0;
+        public final static int MEDIUM_QUALITY = 1;
+        public final static int LOW_QUALITY = 2;
     }
 
     public class NamingRule {
@@ -45,10 +46,10 @@ public class CloudMusicDownloader {
         public final static String SONG_NAME_ONLY = "%s";
     }
 
-    public void parseURL( String urlAddress, String quality,boolean isIncludeLyric, String namingRule, int limit ) {
-        String albumRegex = "http[s]?://music.163.com/#/album\\?id=(\\d+)";
-        String playlistRegex = "http[s]?://music.163.com/#(?:/my/m/music)?/playlist\\?id=(\\d+)";
-        String songRegex = "http[s]?://music.163.com/#/song\\?id=(\\d+)";
+    public void parseURL( String urlAddress, int quality,boolean isIncludeLyric, String namingRule, int limit ) {
+        String albumRegex = "http[s]?://music.163.com(?:/#)?/album\\?id=(\\d+)";
+        String playlistRegex = "http[s]?://music.163.com(?:/#)?(?:/my/m/music)?/playlist\\?id=(\\d+)";
+        String songRegex = "http[s]?://music.163.com(?:/#)?/song\\?id=(\\d+)";
 
         if ( urlAddress.matches(albumRegex) ) {
             Matcher matcher = Pattern.compile(albumRegex).matcher(urlAddress);
@@ -68,7 +69,7 @@ public class CloudMusicDownloader {
         }
     }
 
-    private void parseAlbum( String albumID, String quality, boolean isIncludeLyric, String namingRule, int limit ) {
+    private void parseAlbum( String albumID, int quality, boolean isIncludeLyric, String namingRule, int limit ) {
         String json = readContent( "http://music.163.com/api/album/" + albumID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject album = jsonObject.getJSONObject("album");
@@ -81,7 +82,7 @@ public class CloudMusicDownloader {
         JSONArray songsJson = album.getJSONArray("songs");
         parseResult(songsJson, quality, dir, isIncludeLyric, namingRule, limit);
     }
-    private void parsePlaylist( String listID, String quality, boolean isIncludeLyric, String namingRule, int limit ) {
+    private void parsePlaylist( String listID, int quality, boolean isIncludeLyric, String namingRule, int limit ) {
         String json = readContent( "http://music.163.com/api/playlist/detail?id=" + listID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject result = jsonObject.getJSONObject("result");
@@ -94,14 +95,14 @@ public class CloudMusicDownloader {
         JSONArray tracksJson = result.getJSONArray("tracks");
         parseResult(tracksJson, quality, dir, isIncludeLyric, namingRule, limit);
     }
-    private void parseSong( String SongID, String quality, boolean isIncludeLyric, String namingRule ) {
+    private void parseSong( String SongID, int quality, boolean isIncludeLyric, String namingRule ) {
         String json = readContent( "http://music.163.com/api/song/detail?ids=[" + SongID + "]" );
         JSONObject jsonObject = new JSONObject(json);
         JSONArray songsJson = jsonObject.getJSONArray("songs");
         parseResult(songsJson, quality, null, isIncludeLyric, namingRule, 1);
     }
 
-    private void parseResult(JSONArray jsonResult, String quality, File dir, boolean isIncludeLyric, String namingRule,
+    private void parseResult(JSONArray jsonResult, int quality, File dir, boolean isIncludeLyric, String namingRule,
                              int limit ) {
 
         Song[] songs = new Song[jsonResult.length()];
@@ -118,8 +119,17 @@ public class CloudMusicDownloader {
             String artist = String.join(", ", artistList);
             String mp3Url = curSong.getString("mp3Url");
             mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length()));
-            long dfsId = curSong.getJSONObject(quality).getLong("dfsId");
-            String extension = curSong.getJSONObject(quality).getString("extension");
+            int curQuality = quality;
+            while ( curSong.get(songQuality[curQuality]).equals(null) && (curQuality < songQuality.length) ) {
+                ++curQuality;
+            }
+            if ( curQuality >= songQuality.length ) {
+                System.out.println("下载失败：" + String.format(namingRule, name, artist));
+                continue;
+            }
+            JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
+            long dfsId = music.getLong("dfsId");
+            String extension = music.getString("extension");
             Song song = new Song(id, name, artist, mp3Url, dfsId, extension);
             songs[i] = song;
         }
@@ -173,26 +183,25 @@ public class CloudMusicDownloader {
         boolean result = true;
         String jsonContent = readContent("http://music.163.com/api/song/media?id=" + song.getId());
         JSONObject lyricJson = new JSONObject(jsonContent);
-        try {
+        if ( lyricJson.has("lyric") ) {
             String lyric = lyricJson.getString("lyric");
             String lyricName;
-            if ( dir == null ) {
+            if (dir == null) {
                 lyricName = String.format(namingRule, song.getName(), song.getArtist()) + ".lrc";
-            }
-            else {
+            } else {
                 lyricName = dir.getAbsolutePath() + File.separator +
                         String.format(namingRule, song.getName(), song.getArtist()) + ".lrc";
             }
             try {
-                BufferedWriter bufferedWriter = new BufferedWriter( new FileWriter(lyricName) );
+                BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(lyricName));
                 bufferedWriter.write(lyric);
                 bufferedWriter.flush();
                 bufferedWriter.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } catch ( JSONException e ){
-            //no lyric found
+        }
+        else {
             result = false;
         }
 
