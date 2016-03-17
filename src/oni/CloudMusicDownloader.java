@@ -120,7 +120,7 @@ public class CloudMusicDownloader {
             String mp3Url = curSong.getString("mp3Url");
             mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length()));
             int curQuality = quality;
-            while ( curSong.get(songQuality[curQuality]).equals(null) ) {
+            while ( curSong.isNull(songQuality[curQuality]) ) {
                 ++curQuality;
             }
             JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
