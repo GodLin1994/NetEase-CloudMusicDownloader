@@ -60,7 +60,7 @@ public class ConsoleDownloader {
 
         try {
             CommandLine cli = parser.parse(options, args);
-            String quality = CloudMusicDownloader.Quality.HIGH_QUALITY;
+            int quality = CloudMusicDownloader.Quality.HIGH_QUALITY;
             boolean isIncludeLyric = false;
             String namingRule = CloudMusicDownloader.NamingRule.SONG_AND_ARTIST;
             int limit = 5;
