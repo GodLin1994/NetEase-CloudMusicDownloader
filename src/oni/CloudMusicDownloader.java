@@ -60,7 +60,8 @@ public class CloudMusicDownloader {
         }
         else if ( urlAddress.matches(playlistRegex) ) {
             Matcher matcher = Pattern.compile(playlistRegex).matcher(urlAddress);
-            if ( matcher.find() ) parsePlaylist(matcher.group(1), quality, isIncludeLyric, isSetID3Tag, namingRule, limit);
+            if ( matcher.find() ) parsePlaylist(matcher.group(1), quality, isIncludeLyric, isSetID3Tag, namingRule,
+                    limit);
         }
         else if ( urlAddress.matches(songRegex) ) {
             Matcher matcher = Pattern.compile(songRegex).matcher(urlAddress);
@@ -124,15 +125,21 @@ public class CloudMusicDownloader {
             }
             String artist = joiner.toString();
             String album = curSong.getJSONObject("album").getString("name");
-            String mp3Url = curSong.getString("mp3Url");
-            mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length()));
-            int curQuality = quality;
-            while ( curSong.isNull(songQuality[curQuality]) ) {
-                ++curQuality;
+
+            String mp3Url = null;
+            long dfsId = 0;
+            String extension = null;
+            if ( !curSong.isNull("mp3Url") ) {
+                mp3Url = curSong.getString("mp3Url");
+                int curQuality = quality;
+                while ( curSong.isNull(songQuality[curQuality]) ) {
+                    ++curQuality;
+                }
+                JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
+                dfsId = music.getLong("dfsId");
+                extension = music.getString("extension");
             }
-            JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
-            long dfsId = music.getLong("dfsId");
-            String extension = music.getString("extension");
+
             Song song = new Song(id, name, artist, album, mp3Url, dfsId, extension);
             songs[i] = song;
         }
@@ -140,8 +147,12 @@ public class CloudMusicDownloader {
         ExecutorService pool = Executors.newFixedThreadPool(limit);
         System.out.println("共：" + songs.length + "首歌曲\n正在下载...");
         for ( Song song : songs ) {
-            String songURL = song.getMp3Url() + "/" + encryptedID("" + song.getDfsId()) + "/" +
-                    song.getDfsId() + "." + song.getExtension();
+            if ( song.getMp3Url() == null ) {
+                System.out.println("下载失败：" + String.format(namingRule, song.getName(), song.getArtist()));
+                continue;
+            }
+            String songURL = song.getMp3Url().substring(0, song.getMp3Url().indexOf('/', "https://".length())) + "/" +
+                    encryptedID("" + song.getDfsId()) + "/" + song.getDfsId() + "." + song.getExtension();
             String songName = String.format(namingRule, song.getName(), song.getArtist()) + "." + song.getExtension();
             File file;
             if ( dir != null ) {
