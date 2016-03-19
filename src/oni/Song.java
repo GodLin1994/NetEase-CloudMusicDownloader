@@ -4,16 +4,18 @@ public class Song {
     private int id;
     private String name;
     private String artist;
+    private String album;
     private String mp3Url;
     private long dfsId;
     private String extension;
 
     public Song(){}
 
-    public Song(int id, String name, String artist, String mp3Url, long dfsId, String extension) {
+    public Song(int id, String name, String artist, String album, String mp3Url, long dfsId, String extension) {
         this.id = id;
         this.name = name;
         this.artist = artist;
+        this.album = album;
         this.mp3Url = mp3Url;
         this.dfsId = dfsId;
         this.extension = extension;
@@ -41,6 +43,14 @@ public class Song {
 
     public void setArtist(String artist) {
         this.artist = artist;
+    }
+
+    public String getAlbum() {
+        return album;
+    }
+
+    public void setAlbum(String album) {
+        this.album = album;
     }
 
     public String getMp3Url() {

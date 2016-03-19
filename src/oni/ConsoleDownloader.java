@@ -33,6 +33,11 @@ public class ConsoleDownloader {
                 .desc("包含歌词")
                 .build();
 
+        final Option id3TagOption = Option.builder("s")
+                .longOpt("set_id3tag")
+                .desc("设置ID3标签")
+                .build();
+
         final Option namingRuleOption = Option.builder("n")
                 .longOpt("name_rule")
                 .desc("设置歌曲命名格式。歌曲名+歌手：1，歌手+歌曲名：2，仅歌曲名：3")
@@ -51,6 +56,7 @@ public class ConsoleDownloader {
                 .addOption(urlOption)
                 .addOption(qualityOption)
                 .addOption(lyricOption)
+                .addOption(id3TagOption)
                 .addOption(namingRuleOption)
                 .addOption(limitOption)
                 .addOption(helpOption);
@@ -62,6 +68,7 @@ public class ConsoleDownloader {
             CommandLine cli = parser.parse(options, args);
             int quality = CloudMusicDownloader.Quality.HIGH_QUALITY;
             boolean isIncludeLyric = false;
+            boolean isSetID3Tag = false;
             String namingRule = CloudMusicDownloader.NamingRule.SONG_AND_ARTIST;
             int limit = 5;
 
@@ -88,6 +95,10 @@ public class ConsoleDownloader {
 
             if ( cli.hasOption("c") ) {
                 isIncludeLyric = true;
+            }
+
+            if ( cli.hasOption("s") ) {
+                isSetID3Tag = true;
             }
 
             if ( cli.hasOption("n") ) {
@@ -128,7 +139,7 @@ public class ConsoleDownloader {
                 }
             }
 
-            cloudMusicDownloader.parseURL(cli.getOptionValue("u"), quality, isIncludeLyric, namingRule, limit);
+            cloudMusicDownloader.parseURL(cli.getOptionValue("u"), quality, isIncludeLyric, isSetID3Tag, namingRule, limit);
         } catch (ParseException e) {
             helpFormatter.printHelp(cloudMusicDownloader.getClass().getSimpleName(), options, true);
         }

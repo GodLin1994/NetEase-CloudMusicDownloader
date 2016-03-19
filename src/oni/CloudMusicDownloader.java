@@ -1,5 +1,6 @@
 package oni;
 
+import com.mpatric.mp3agic.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -9,6 +10,7 @@ import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -46,22 +48,23 @@ public class CloudMusicDownloader {
         public final static String SONG_NAME_ONLY = "%s";
     }
 
-    public void parseURL( String urlAddress, int quality,boolean isIncludeLyric, String namingRule, int limit ) {
+    public void parseURL( String urlAddress, int quality,boolean isIncludeLyric, boolean isSetID3Tag,
+                          String namingRule, int limit ) {
         String albumRegex = "http[s]?://music.163.com(?:/#)?/album\\?id=(\\d+)";
         String playlistRegex = "http[s]?://music.163.com(?:/#)?(?:/my/m/music)?/playlist\\?id=(\\d+)";
         String songRegex = "http[s]?://music.163.com(?:/#)?/song\\?id=(\\d+)";
 
         if ( urlAddress.matches(albumRegex) ) {
             Matcher matcher = Pattern.compile(albumRegex).matcher(urlAddress);
-            if ( matcher.find() ) parseAlbum(matcher.group(1), quality, isIncludeLyric, namingRule, limit);
+            if ( matcher.find() ) parseAlbum(matcher.group(1), quality, isIncludeLyric, isSetID3Tag, namingRule, limit);
         }
         else if ( urlAddress.matches(playlistRegex) ) {
             Matcher matcher = Pattern.compile(playlistRegex).matcher(urlAddress);
-            if ( matcher.find() ) parsePlaylist(matcher.group(1), quality, isIncludeLyric, namingRule, limit);
+            if ( matcher.find() ) parsePlaylist(matcher.group(1), quality, isIncludeLyric, isSetID3Tag, namingRule, limit);
         }
         else if ( urlAddress.matches(songRegex) ) {
             Matcher matcher = Pattern.compile(songRegex).matcher(urlAddress);
-            if ( matcher.find() ) parseSong(matcher.group(1), quality, isIncludeLyric, namingRule);
+            if ( matcher.find() ) parseSong(matcher.group(1), quality, isIncludeLyric, isSetID3Tag, namingRule);
         }
         else {
             System.out.println("无效的Url：" + urlAddress);
@@ -69,7 +72,8 @@ public class CloudMusicDownloader {
         }
     }
 
-    private void parseAlbum( String albumID, int quality, boolean isIncludeLyric, String namingRule, int limit ) {
+    private void parseAlbum( String albumID, int quality, boolean isIncludeLyric, boolean isSetID3Tag,
+                             String namingRule, int limit ) {
         String json = readContent( "http://music.163.com/api/album/" + albumID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject album = jsonObject.getJSONObject("album");
@@ -80,9 +84,10 @@ public class CloudMusicDownloader {
             return;
         }
         JSONArray songsJson = album.getJSONArray("songs");
-        parseResult(songsJson, quality, dir, isIncludeLyric, namingRule, limit);
+        parseResult(songsJson, quality, dir, isIncludeLyric, isSetID3Tag, namingRule, limit);
     }
-    private void parsePlaylist( String listID, int quality, boolean isIncludeLyric, String namingRule, int limit ) {
+    private void parsePlaylist( String listID, int quality, boolean isIncludeLyric, boolean isSetID3Tag,
+                                String namingRule, int limit ) {
         String json = readContent( "http://music.163.com/api/playlist/detail?id=" + listID );
         JSONObject jsonObject = new JSONObject(json);
         JSONObject result = jsonObject.getJSONObject("result");
@@ -93,17 +98,18 @@ public class CloudMusicDownloader {
             return;
         }
         JSONArray tracksJson = result.getJSONArray("tracks");
-        parseResult(tracksJson, quality, dir, isIncludeLyric, namingRule, limit);
+        parseResult(tracksJson, quality, dir, isIncludeLyric, isSetID3Tag, namingRule, limit);
     }
-    private void parseSong( String SongID, int quality, boolean isIncludeLyric, String namingRule ) {
+    private void parseSong( String SongID, int quality, boolean isIncludeLyric, boolean isSetID3Tag,
+                            String namingRule ) {
         String json = readContent( "http://music.163.com/api/song/detail?ids=[" + SongID + "]" );
         JSONObject jsonObject = new JSONObject(json);
         JSONArray songsJson = jsonObject.getJSONArray("songs");
-        parseResult(songsJson, quality, null, isIncludeLyric, namingRule, 1);
+        parseResult(songsJson, quality, null, isIncludeLyric, isSetID3Tag, namingRule, 1);
     }
 
-    private void parseResult(JSONArray jsonResult, int quality, File dir, boolean isIncludeLyric, String namingRule,
-                             int limit ) {
+    private void parseResult(JSONArray jsonResult, int quality, File dir, boolean isIncludeLyric, boolean isSetID3Tag,
+                             String namingRule, int limit ) {
 
         Song[] songs = new Song[jsonResult.length()];
 
@@ -112,11 +118,12 @@ public class CloudMusicDownloader {
             int id = curSong.getInt("id");
             String name = curSong.getString("name");
             JSONArray artists = curSong.getJSONArray("artists");
-            String[] artistList = new String[artists.length()];
+            StringJoiner joiner = new StringJoiner(", ");
             for ( int j = 0; j < artists.length(); ++j ) {
-                artistList[j] = artists.getJSONObject(j).getString("name");
+                joiner.add( artists.getJSONObject(j).getString("name") );
             }
-            String artist = String.join(", ", artistList);
+            String artist = joiner.toString();
+            String album = curSong.getJSONObject("album").getString("name");
             String mp3Url = curSong.getString("mp3Url");
             mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length()));
             int curQuality = quality;
@@ -126,7 +133,7 @@ public class CloudMusicDownloader {
             JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
             long dfsId = music.getLong("dfsId");
             String extension = music.getString("extension");
-            Song song = new Song(id, name, artist, mp3Url, dfsId, extension);
+            Song song = new Song(id, name, artist, album, mp3Url, dfsId, extension);
             songs[i] = song;
         }
 
@@ -146,8 +153,12 @@ public class CloudMusicDownloader {
 
             pool.execute( new Thread( () -> {
                 downloadFile(songURL, file);
+
                 if ( isIncludeLyric ) {
                     downloadLyric(song, dir, namingRule);
+                }
+                if ( isSetID3Tag ) {
+                    setID3Tag(song, file);
                 }
                 System.out.println("下载完成：" + String.format(namingRule, song.getName(), song.getArtist()));
             }) );
@@ -202,6 +213,32 @@ public class CloudMusicDownloader {
         }
 
         return result;
+    }
+
+    private void setID3Tag(Song song, File file ) {
+        try {
+            Mp3File mp3File = new Mp3File(file);
+
+            ID3v1 id3v1Tag = mp3File.hasId3v1Tag() ? mp3File.getId3v1Tag() : new ID3v1Tag();
+            id3v1Tag.setTitle( song.getName() );
+            id3v1Tag.setArtist( song.getArtist() );
+            id3v1Tag.setAlbum( song.getAlbum() );
+            mp3File.setId3v1Tag(id3v1Tag);
+
+            ID3v2 id3v2Tag = mp3File.hasId3v2Tag() ? mp3File.getId3v2Tag() : new ID3v23Tag();
+            id3v2Tag.setTitle( song.getName() );
+            id3v2Tag.setArtist( song.getArtist() );
+            id3v2Tag.setAlbum( song.getAlbum() );
+            mp3File.setId3v2Tag(id3v2Tag);
+
+            File modifiedFile = new File( file.getAbsolutePath() + "_modified" );
+            mp3File.save(modifiedFile.getAbsolutePath());
+            if ( !file.delete() || !modifiedFile.renameTo(file) ) {
+                System.out.println("修改ID3标签失败！");
+            }
+        } catch (IOException | UnsupportedTagException | InvalidDataException |NotSupportedException e) {
+            e.printStackTrace();
+        }
     }
 
     private String readContent( String urlAddress ) {
