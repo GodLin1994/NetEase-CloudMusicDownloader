@@ -3,12 +3,13 @@
 
 使用方法：
 ```
-usage: CloudMusicDownloader [-c] [-h] [-m <limit>] [-n <name rule>] [-q <quality>] -u <url>
+usage: CloudMusicDownloader [-c] [-h] [-m <limit>] [-n <name rule>] [-q <quality>] [-s] -u <url>
  -c,--lrc                     包含歌词
  -h,--help                    打印帮助
  -m,--limit <limit>           设置同时下载歌曲数
  -n,--name_rule <name rule>   设置歌曲命名格式。歌曲名+歌手：1，歌手+歌曲名：2，仅歌曲名：3
  -q,--quality <quality>       选择音频质量，高：h，中：m，低：l
+ -s,--set_id3tag              设置ID3标签
  -u,--url <url>               从指定URL下载歌曲
 ```
 
