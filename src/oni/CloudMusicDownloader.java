@@ -230,13 +230,10 @@ public class CloudMusicDownloader {
         try {
             Mp3File mp3File = new Mp3File(file);
 
-            ID3v1 id3v1Tag = mp3File.hasId3v1Tag() ? mp3File.getId3v1Tag() : new ID3v1Tag();
-            id3v1Tag.setTitle( song.getName() );
-            id3v1Tag.setArtist( song.getArtist() );
-            id3v1Tag.setAlbum( song.getAlbum() );
-            mp3File.setId3v1Tag(id3v1Tag);
+            if ( mp3File.hasId3v1Tag() ) mp3File.removeId3v1Tag();
+            if ( mp3File.hasCustomTag() ) mp3File.removeCustomTag();
 
-            ID3v2 id3v2Tag = mp3File.hasId3v2Tag() ? mp3File.getId3v2Tag() : new ID3v23Tag();
+            ID3v2 id3v2Tag = new ID3v24Tag();
             id3v2Tag.setTitle( song.getName() );
             id3v2Tag.setArtist( song.getArtist() );
             id3v2Tag.setAlbum( song.getAlbum() );
