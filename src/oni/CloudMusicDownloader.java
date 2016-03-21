@@ -148,7 +148,7 @@ public class CloudMusicDownloader {
         System.out.println("共：" + songs.length + "首歌曲\n正在下载...");
         for ( Song song : songs ) {
             if ( song.getMp3Url() == null ) {
-                System.out.println("下载失败：" + String.format(namingRule, song.getName(), song.getArtist()));
+                System.out.println("歌曲失效：" + String.format(namingRule, song.getName(), song.getArtist()));
                 continue;
             }
             String songURL = song.getMp3Url().substring(0, song.getMp3Url().indexOf('/', "https://".length())) + "/" +
@@ -244,7 +244,7 @@ public class CloudMusicDownloader {
             if ( !file.delete() || !modifiedFile.renameTo(file) ) {
                 System.out.println("修改ID3标签失败！");
             }
-        } catch (IOException | UnsupportedTagException | InvalidDataException |NotSupportedException e) {
+        } catch (IOException | UnsupportedTagException | InvalidDataException | NotSupportedException e) {
             e.printStackTrace();
         }
     }
