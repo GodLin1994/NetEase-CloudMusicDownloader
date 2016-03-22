@@ -9,6 +9,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
@@ -141,7 +142,7 @@ public class CloudMusicDownloader {
                 extension = music.getString("extension");
                 bitrate = music.getInt("bitrate");
                 if ( curQuality < songQuality.length ) {
-                    mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length())) + "/" +
+                    mp3Url = "http://m" + (LocalDateTime.now().getSecond() % 2 + 1) + ".music.126.net/" +
                             encryptedID("" + dfsId) + "/" + dfsId + "." + extension;
                 }
             }
