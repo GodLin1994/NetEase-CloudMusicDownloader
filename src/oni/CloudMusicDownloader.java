@@ -129,18 +129,24 @@ public class CloudMusicDownloader {
             String mp3Url = null;
             long dfsId = 0;
             String extension = null;
+            int bitrate = 0;
             if ( !curSong.isNull("mp3Url") ) {
                 mp3Url = curSong.getString("mp3Url");
                 int curQuality = quality;
-                while ( curSong.isNull(songQuality[curQuality]) ) {
+                while ( curQuality < songQuality.length && curSong.isNull(songQuality[curQuality]) ) {
                     ++curQuality;
                 }
                 JSONObject music = curSong.getJSONObject(songQuality[curQuality]);
                 dfsId = music.getLong("dfsId");
                 extension = music.getString("extension");
+                bitrate = music.getInt("bitrate");
+                if ( curQuality < songQuality.length ) {
+                    mp3Url = mp3Url.substring(0, mp3Url.indexOf('/', "https://".length())) + "/" +
+                            encryptedID("" + dfsId) + "/" + dfsId + "." + extension;
+                }
             }
 
-            Song song = new Song(id, name, artist, album, mp3Url, dfsId, extension);
+            Song song = new Song(id, name, artist, album, mp3Url, dfsId, extension, bitrate);
             songs[i] = song;
         }
 
@@ -151,8 +157,7 @@ public class CloudMusicDownloader {
                 System.out.println("歌曲失效：" + String.format(namingRule, song.getName(), song.getArtist()));
                 continue;
             }
-            String songURL = song.getMp3Url().substring(0, song.getMp3Url().indexOf('/', "https://".length())) + "/" +
-                    encryptedID("" + song.getDfsId()) + "/" + song.getDfsId() + "." + song.getExtension();
+            String songURL = song.getMp3Url();
             String songName = String.format(namingRule, song.getName(), song.getArtist()) + "." + song.getExtension();
             File file;
             if ( dir != null ) {
@@ -171,7 +176,8 @@ public class CloudMusicDownloader {
                 if ( isSetID3Tag ) {
                     setID3Tag(song, file);
                 }
-                System.out.println("下载完成：" + String.format(namingRule, song.getName(), song.getArtist()));
+                System.out.println( "下载完成：" + String.format(namingRule, song.getName(), song.getArtist()) +
+                        " (" + song.getBitrate() / 1000 + " kbps)" );
             }) );
         }
         pool.shutdown();
