@@ -8,10 +8,12 @@ public class Song {
     private String mp3Url;
     private long dfsId;
     private String extension;
+    private int bitrate;
 
     public Song(){}
 
-    public Song(int id, String name, String artist, String album, String mp3Url, long dfsId, String extension) {
+    public Song(int id, String name, String artist, String album, String mp3Url, long dfsId, String extension,
+                int bitrate) {
         this.id = id;
         this.name = name;
         this.artist = artist;
@@ -19,6 +21,7 @@ public class Song {
         this.mp3Url = mp3Url;
         this.dfsId = dfsId;
         this.extension = extension;
+        this.bitrate = bitrate;
     }
 
     public int getId() {
@@ -75,5 +78,13 @@ public class Song {
 
     public void setExtension(String extension) {
         this.extension = extension;
+    }
+
+    public int getBitrate() {
+        return bitrate;
+    }
+
+    public void setBitrate(int bitrate) {
+        this.bitrate = bitrate;
     }
 }
