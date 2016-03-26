@@ -127,6 +127,9 @@ public class CloudMusicDownloader {
             String artist = joiner.toString();
             String album = curSong.getJSONObject("album").getString("name");
 
+            int no = 0;
+            if ( curSong.has("no") ) no = curSong.getInt("no");
+
             String mp3Url = null;
             long dfsId = 0;
             String extension = null;
@@ -147,7 +150,7 @@ public class CloudMusicDownloader {
                 }
             }
 
-            Song song = new Song(id, name, artist, album, mp3Url, dfsId, extension, bitrate);
+            Song song = new Song(id, name, artist, album, no, mp3Url, dfsId, extension, bitrate);
             songs[i] = song;
         }
 
@@ -244,6 +247,7 @@ public class CloudMusicDownloader {
             id3v2Tag.setTitle( song.getName() );
             id3v2Tag.setArtist( song.getArtist() );
             id3v2Tag.setAlbum( song.getAlbum() );
+            if ( song.getNo() != 0 ) id3v2Tag.setTrack("" + song.getNo());
             mp3File.setId3v2Tag(id3v2Tag);
 
             File modifiedFile = new File( file.getAbsolutePath() + "_modified" );
