@@ -5,6 +5,7 @@ public class Song {
     private String name;
     private String artist;
     private String album;
+    private int no;
     private String mp3Url;
     private long dfsId;
     private String extension;
@@ -12,12 +13,13 @@ public class Song {
 
     public Song(){}
 
-    public Song(int id, String name, String artist, String album, String mp3Url, long dfsId, String extension,
+    public Song(int id, String name, String artist, String album, int no, String mp3Url, long dfsId, String extension,
                 int bitrate) {
         this.id = id;
         this.name = name;
         this.artist = artist;
         this.album = album;
+        this.no = no;
         this.mp3Url = mp3Url;
         this.dfsId = dfsId;
         this.extension = extension;
@@ -54,6 +56,14 @@ public class Song {
 
     public void setAlbum(String album) {
         this.album = album;
+    }
+
+    public int getNo() {
+        return no;
+    }
+
+    public void setNo(int no) {
+        this.no = no;
     }
 
     public String getMp3Url() {
