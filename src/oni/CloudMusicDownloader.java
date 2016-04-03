@@ -5,6 +5,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.MessageDigest;
@@ -172,7 +173,14 @@ public class CloudMusicDownloader {
             }
 
             pool.execute( new Thread( () -> {
-                downloadFile(songURL, file);
+
+                if ( exists(songURL) ) {
+                    downloadFile(songURL, file);
+                }
+                else {
+                    System.out.println( "解析失败：" + String.format(namingRule, song.getName(), song.getArtist()) );
+                    return;
+                }
 
                 if ( isIncludeLyric ) {
                     downloadLyric(song, dir, namingRule);
@@ -280,6 +288,21 @@ public class CloudMusicDownloader {
             e.printStackTrace();
         }
         return result;
+    }
+
+    private boolean exists(String urlAddress){
+        try {
+            HttpURLConnection.setFollowRedirects(false);
+            // note : you may also need
+            //        HttpURLConnection.setInstanceFollowRedirects(false)
+            HttpURLConnection con = (HttpURLConnection) new URL(urlAddress).openConnection();
+            con.setRequestMethod("HEAD");
+            return (con.getResponseCode() == HttpURLConnection.HTTP_OK);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     private long downloadFile(String urlAddress, File outFile ) {
