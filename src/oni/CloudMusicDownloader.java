@@ -53,7 +53,7 @@ public class CloudMusicDownloader {
     public void parseURL( String urlAddress, int quality,boolean isIncludeLyric, boolean isSetID3Tag,
                           String namingRule, int limit ) {
         String albumRegex = "http[s]?://music.163.com(?:/#)?/album\\?id=(\\d+)";
-        String playlistRegex = "http[s]?://music.163.com(?:/#)?(?:/my/m/music)?/playlist\\?id=(\\d+)";
+        String playlistRegex = "http[s]?://music.163.com(?:/#)?(?:/m)?(?:/my/m/music)?/playlist\\?id=(\\d+)";
         String songRegex = "http[s]?://music.163.com(?:/#)?/song\\?id=(\\d+)";
 
         if ( urlAddress.matches(albumRegex) ) {
@@ -293,8 +293,6 @@ public class CloudMusicDownloader {
     private boolean exists(String urlAddress){
         try {
             HttpURLConnection.setFollowRedirects(false);
-            // note : you may also need
-            //        HttpURLConnection.setInstanceFollowRedirects(false)
             HttpURLConnection con = (HttpURLConnection) new URL(urlAddress).openConnection();
             con.setRequestMethod("HEAD");
             return (con.getResponseCode() == HttpURLConnection.HTTP_OK);
